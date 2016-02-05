@@ -12,8 +12,6 @@ struct cGlobals {
 	int gold;
 	int row;
 	int col;
-	int maph;
-	int mapw;
 	// Unlockables
 	// Some Buffers
 	char info1[256];
@@ -25,7 +23,7 @@ struct cGlobals {
 	char player1[8];
 	char doggy[8];
 	// Array
-	int nMapArray[][];
+	int nMapArray[15][20];
 };
 
 void _start();
