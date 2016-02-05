@@ -216,15 +216,15 @@ void drawmap(struct cGlobals *caveGlobals) {
 	// Now draw each element in the x, y
 	int y;
 	int x;
-	char buff1[255];
+	char mapbuff[255];
     for( y = 0; y < 15; y++ ) {
         for( x = 0; x < 20; x++ ) {
             switch ( caveGlobals->nMapArray[y][x] ) {
                 case TILE_FLOOR:
-                    __os_snprintf(buff1,255, "."); drawString(x,y,buff1);
+                    __os_snprintf(mapbuff,255, "."); drawString(x,y,mapbuff);
                     break;
                 case TILE_WALL:
-                    __os_snprintf(buff1,255, "#"); drawString(x,y,buff1);
+                    __os_snprintf(mapbuff,255, "#"); drawString(x,y,mapbuff);
                     break;
             }
         }
