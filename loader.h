@@ -24,9 +24,7 @@ struct cGlobals {
 	char doggy[8];
 	// Array
 	int nMapArray[15][20];
-	
-	// This thingy
-	void*(*memset)(void * dest, uint32_t value, uint32_t bytes);
+
 };
 
 void _start();
