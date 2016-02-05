@@ -4,6 +4,7 @@ void doclearstuff();
 void drawtitle();
 void drawmap();
 void dog();
+void*(*memset)(void * dest, uint32_t value, uint32_t bytes);
 
 void _start()
 {
@@ -43,7 +44,7 @@ void _start()
     unsigned int(*OSScreenGetBufferSizeEx)(unsigned int bufferNum);
     unsigned int(*OSScreenSetBufferEx)(unsigned int bufferNum, void * addr);
     //OS Memory functions
-    void*(*memset)(void * dest, uint32_t value, uint32_t bytes);
+		//void*(*memset)(void * dest, uint32_t value, uint32_t bytes);
     void*(*OSAllocFromSystem)(uint32_t size, int align);
     void(*OSFreeToSystem)(void *ptr);
     //IM functions
@@ -88,9 +89,6 @@ void _start()
 
 	// Define struct for global variables!
 	struct cGlobals caveGlobals;
-
-	// Memset pointer
-	OSDynLoad_FindExport(coreinit_handle, 0, "memset", &caveGlobals.memset);
 	
 	// Variables n stuff!
 	caveGlobals.menu = 1;
@@ -102,8 +100,6 @@ void _start()
 	drawtitle(&caveGlobals);
 	drawmap(&caveGlobals);
 	flipBuffers();
-
-	// 
 	
     int err;
    
@@ -192,8 +188,6 @@ void dog(struct cGlobals *caveGlobals) {
 }
 
 void drawmap(struct cGlobals *caveGlobals) {
-	// Get the memset pointer
-	void*(*memset)(void *dest, uint32_t value, uint32_t bytes) = caveGlobals->memset;
 	// Matrix Pieces
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
@@ -215,8 +209,6 @@ void drawmap(struct cGlobals *caveGlobals) {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 	};
-	// Memset stuff
-	
 	// Fill our global array
 	int i;
 	int j;
