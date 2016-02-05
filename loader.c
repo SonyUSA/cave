@@ -95,6 +95,7 @@ void _start()
 	
 	// Draw Buffers and Initial Screen
 	drawtitle(&caveGlobals);
+	drawmap(&caveGlobals);
 	flipBuffers();
 	
     int err;
@@ -170,7 +171,7 @@ void drawtitle(struct cGlobals *caveGlobals) {
 	// Draw the title bar and the main guy
 	__os_snprintf(caveGlobals->player1, 8, "@");
 	__os_snprintf(caveGlobals->titlebar1, 128, "Gold: %d      HP:          == C@VE ==             Press + for Menu", caveGlobals->gold);
-	//__os_snprintf(caveGlobals->titlebar2, 128, "%s / %s", caveGlobals->row, caveGlobals->col);
+	//__os_snprintf(caveGlobals->titlebar2, 128, "%d / %d", caveGlobals->row, caveGlobals->col);
 	drawString(0, 0, caveGlobals->titlebar1);
 	//drawString(1, 0, caveGlobals->titlebar2);
 	drawString(caveGlobals->row, caveGlobals->col, caveGlobals->player1);
@@ -187,7 +188,7 @@ void drawmap(struct cGlobals *caveGlobals) {
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
 	// Have an array!
-	caveGlobals->nMapArray[15][20] = {
+	int nMapArray[15][20] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
@@ -204,20 +205,28 @@ void drawmap(struct cGlobals *caveGlobals) {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 	};
-	int y;
-	int x;
-	for( y = 0; y < 20; y++ ) {
-		console.Position( 0, y );
-		for( x = 0; x < 15; x++ ) {
-			switch ( caveGlobals->nMapArray[y][x] ) {
-				case TILE_FLOOR:
-					console << '.';
-					break;
-				
-				case TILE_WALL:
-					console << '#';
-					break;
-			}
+	// Fill our global array
+	int i;
+	int j;
+	for( i = 0; i < 15; i++) {
+		for( j = 0; j < 20; i++) {
+        caveGlobals->nMapArray[i][j]=nMapArray[i][j];
 		}
 	}
+	// Now draw each element in the x, y
+	int y;
+	int x;
+	char buff1[255];
+    for( y = 0; y < 15; y++ ) {
+        for( x = 0; x < 20; x++ ) {
+            switch ( caveGlobals->nMapArray[y][x] ) {
+                case TILE_FLOOR:
+                    __os_snprintf(buff1,255, "."); drawString(x,y,buff1);
+                    break;
+                case TILE_WALL:
+                    __os_snprintf(buff1,255, "#"); drawString(x,y,buff1);
+                    break;
+            }
+        }
+    }
 }
