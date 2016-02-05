@@ -92,8 +92,6 @@ void _start()
 	caveGlobals.gold = 0;
 	caveGlobals.row = 5;
 	caveGlobals.col = 5;
-	caveGlobals.maph = 15;
-	caveGlobals.mapw = 20;
 	
 	// Draw Buffers and Initial Screen
 	drawtitle(&caveGlobals);
@@ -189,10 +187,7 @@ void drawmap(struct cGlobals *caveGlobals) {
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
 	// Have an array!
-	// int caveGlobals->maph = map_h;
-	// int caveGlobals->mapw = map_w;
-	int caveGlobals->nMapArray[caveGlobals->maph][caveGlobals->mapw] = 
-	{
+	caveGlobals->nMapArray[15][20] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
@@ -211,10 +206,10 @@ void drawmap(struct cGlobals *caveGlobals) {
 	};
 	int y;
 	int x;
-	for( y = 0; y < caveGlobals->maph; y++ ) {
+	for( y = 0; y < 20; y++ ) {
 		console.Position( 0, y );
-		for( x = 0; x < caveGlobals->mapw; x++ ) {
-			switch ( nMapArray[y][x] ) {
+		for( x = 0; x < 15; x++ ) {
+			switch ( caveGlobals->nMapArray[y][x] ) {
 				case TILE_FLOOR:
 					console << '.';
 					break;
