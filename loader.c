@@ -34,6 +34,8 @@ void _start()
 	OSDynLoad_FindExport(sysapp_handle, 0, "SYSLaunchTitle", &SYSLaunchTitle);
 	int(*_Exit)();
 	OSDynLoad_FindExport(coreinit_handle, 0, "_Exit", &_Exit);
+	// int (*memset)();
+	// OSDynLoad_FindExport(coreinit_handle, 0, "memset", &memset);
    
     /****************************>       External Prototypes       <****************************/
     //OSScreen functions
@@ -86,6 +88,9 @@ void _start()
 
 	// Define struct for global variables!
 	struct cGlobals caveGlobals;
+
+	// Memset pointer
+	OSDynLoad_FindExport(coreinit_handle, 0, "memset", &caveGlobals.memset);
 	
 	// Variables n stuff!
 	caveGlobals.menu = 1;
@@ -97,6 +102,8 @@ void _start()
 	drawtitle(&caveGlobals);
 	drawmap(&caveGlobals);
 	flipBuffers();
+
+	// 
 	
     int err;
    
@@ -105,6 +112,7 @@ void _start()
 		
 		// Quit
 		if (vpad_data.btn_trigger & BUTTON_HOME) {
+			doclearstuff();
 			__os_snprintf(caveGlobals.endgame, 256, "Thanks for Playing!\nYour Final Gold: %d \n\n\nBy: SonyUSA", caveGlobals.gold);
 			drawString(0, 0, caveGlobals.endgame);
 			flipBuffers();
@@ -184,10 +192,12 @@ void dog(struct cGlobals *caveGlobals) {
 }
 
 void drawmap(struct cGlobals *caveGlobals) {
+	// Get the memset pointer
+	void*(*memset)(void *dest, uint32_t value, uint32_t bytes) = caveGlobals->memset;
 	// Matrix Pieces
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
-	// Have an array!
+	// Have an array! Height then width!
 	int nMapArray[15][20] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -205,6 +215,8 @@ void drawmap(struct cGlobals *caveGlobals) {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 	};
+	// Memset stuff
+	
 	// Fill our global array
 	int i;
 	int j;
