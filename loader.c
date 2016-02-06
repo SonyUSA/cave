@@ -227,10 +227,10 @@ void drawmap(struct cGlobals *caveGlobals) {
             switch ( caveGlobals->nMapArray[y][x] ) {
                 case TILE_FLOOR:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "."); drawString(x, y, caveGlobals->mapbuff);
-                    break;
+                break;
                 case TILE_WALL:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "#"); drawString(x, y, caveGlobals->mapbuff);
-                    break;
+                break;
             }
         }
     }
@@ -241,7 +241,7 @@ void level1(struct cGlobals *caveGlobals) {
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
 	// Have an array! Height then width!
-	int nMapArray[15][20] = {
+	int lMapArray[15][20] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
@@ -261,9 +261,9 @@ void level1(struct cGlobals *caveGlobals) {
 	// Fill our global array
 	int i;
 	int j;
-	for( i = 0; i < 20; i++) {
-		for( j = 0; j < 15; i++) {
-        caveGlobals->nMapArray[i][j]=nMapArray[i][j];
+	for( i = 0; i < 15; i++) {
+		for( j = 0; j < 20; i++) {
+			caveGlobals->nMapArray[i][j]=lMapArray[i][j];
 		}
 	}
 	// Put the player where she belongs!
