@@ -5,6 +5,7 @@ void drawtitle();
 void drawmap();
 void dog();
 void level1();
+bool IsPassable( int nMapX, int nMapY );
 
 void _start()
 {
@@ -95,6 +96,8 @@ void _start()
 	caveGlobals.col = 5;
 	caveGlobals.level = 1;
 	
+	level1(&caveGlobals);
+	
 	// Draw Buffers and Initial Screen
 	drawtitle(&caveGlobals);
 	// drawmap(&caveGlobals);
@@ -124,16 +127,20 @@ void _start()
 			dog(&caveGlobals);
 			caveGlobals.col += 1;
 			drawtitle(&caveGlobals);
+			drawmap(&caveGlobals);
 			flipBuffers();
 		}
 		//Up
 		if (vpad_data.btn_trigger & BUTTON_UP) {
-			doclearstuff();
-			dog(&caveGlobals);
-			caveGlobals.col -= 1;
-			drawtitle(&caveGlobals);
-
-			flipBuffers();
+			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col -= 1 == true ) ) {	
+				doclearstuff();
+				dog(&caveGlobals);
+				caveGlobals.col -= 1;
+				drawtitle(&caveGlobals);
+				drawmap(&caveGlobals);
+				flipBuffers();
+			}
+			
 		}
 		//Left
 		if (vpad_data.btn_trigger & BUTTON_LEFT) {
@@ -141,6 +148,7 @@ void _start()
 			dog(&caveGlobals);
 			caveGlobals.row -= 1;
 			drawtitle(&caveGlobals);
+			drawmap(&caveGlobals);
 			flipBuffers();
 		}
 		//Right
@@ -149,19 +157,16 @@ void _start()
 			dog(&caveGlobals);
 			caveGlobals.row += 1;
 			drawtitle(&caveGlobals);
+			drawmap(&caveGlobals);
 			flipBuffers();
 		}
 		//Plus
 		if (vpad_data.btn_trigger & BUTTON_PLUS) {
-			doclearstuff();
-			dog(&caveGlobals);
-			drawtitle(&caveGlobals);
-			drawmap(&caveGlobals);
-			flipBuffers();
+
 		}
 		//Minus
 		if (vpad_data.btn_trigger & BUTTON_MINUS) {
-			level1(&caveGlobals);
+
 		}
 		// Run (only down for now)
 		if (vpad_data.btn_hold & BUTTON_ZR) {
@@ -179,9 +184,7 @@ void _start()
 		}
 
     }
-   
-    //Jump to entry point.
-    //_entryPoint();
+
 }
 
 void doclearstuff() {
@@ -191,6 +194,20 @@ void doclearstuff() {
 		fillScreen(0,0,0,0);
 		flipBuffers();
 	}
+}
+
+//Boolean for bump mapbuff
+bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
+	// Matrix Pieces
+	#define TILE_FLOOR 0
+	#define TILE_WALL 1
+	#define TILE_WATER 2
+	// Do the thing
+	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
+	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_WATER ) {
+		return true;
+	}
+	return false;
 }
 
 void drawtitle(struct cGlobals *caveGlobals) {
@@ -219,6 +236,7 @@ void drawmap(struct cGlobals *caveGlobals) {
 	// Matrix Pieces
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
+	#define TILE_WATER 2
 	// Draw each element in the matrix
 	int y;
 	int x;
