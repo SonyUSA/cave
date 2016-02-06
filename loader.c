@@ -4,6 +4,7 @@ void doclearstuff();
 void drawtitle();
 void drawmap();
 void dog();
+// void *memset();
 
 void _start()
 {
@@ -184,9 +185,15 @@ void dog(struct cGlobals *caveGlobals) {
 	drawString(caveGlobals->row, caveGlobals->col, caveGlobals->doggy);
 }
 
+void *memset(void *ptr, int value, uint32_t count) {
+	uint8_t *bytes = (uint8_t*)ptr;
+	for (uint32_t i = 0; i < count; i++) bytes[i] = (uint8_t)value;
+	return ptr;
+}
+
 void drawmap(struct cGlobals *caveGlobals) {
 
-	#define memset ((void (*)(void* ptr, int value, uint32_t num))0x0102A3B4)
+	//#define memset ((void (*)(void* ptr, int value, uint32_t num))0x0102A3B4)
 	
 	// Matrix Pieces
 	#define TILE_FLOOR 0
