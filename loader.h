@@ -25,7 +25,7 @@ struct cGlobals {
 	char doggy[8];
 	char mapbuff[2800];
 	// Array
-	unsigned char nMapArray[15][20];
+	unsigned char nMapArray[17][62];
 
 };
 
