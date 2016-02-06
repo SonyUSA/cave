@@ -5,7 +5,8 @@ void drawtitle();
 void drawmap();
 void dog();
 void level1();
-bool IsPassable( int nMapX, int nMapY );
+bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY );
+void *memcpy(void* dst, const void* src, uint32_t size);
 
 void _start()
 {
@@ -73,7 +74,7 @@ void _start()
     IM_Close(fd);
     OSFreeToSystem(mem);
     //wait a bit for browser end
-    unsigned int t1 = 0x10000000;
+    unsigned int t1 = 0x15000000;
     while(t1--) ;
     //Call the Screen initilzation function.
     OSScreenInit();
@@ -92,15 +93,16 @@ void _start()
 	// Variables n stuff!
 	caveGlobals.menu = 1;
 	caveGlobals.gold = 0;
-	caveGlobals.row = 5;
-	caveGlobals.col = 5;
+	caveGlobals.row = 1;
+	caveGlobals.col = 1;
 	caveGlobals.level = 1;
 	
+	// Start at level 1 (obviously!)
 	level1(&caveGlobals);
 	
 	// Draw Buffers and Initial Screen
 	drawtitle(&caveGlobals);
-	// drawmap(&caveGlobals);
+	drawmap(&caveGlobals);
 	flipBuffers();
 	
     int err;
@@ -123,16 +125,18 @@ void _start()
 		// Movement
 		//Down
 		if (vpad_data.btn_trigger & BUTTON_DOWN) {
-			doclearstuff();
-			dog(&caveGlobals);
-			caveGlobals.col += 1;
-			drawtitle(&caveGlobals);
-			drawmap(&caveGlobals);
-			flipBuffers();
+			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {	
+				doclearstuff();
+				dog(&caveGlobals);
+				caveGlobals.col += 1;
+				drawtitle(&caveGlobals);
+				drawmap(&caveGlobals);
+				flipBuffers();
+			}
 		}
 		//Up
 		if (vpad_data.btn_trigger & BUTTON_UP) {
-			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col -= 1 == true ) ) {	
+			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {	
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.col -= 1;
@@ -140,25 +144,28 @@ void _start()
 				drawmap(&caveGlobals);
 				flipBuffers();
 			}
-			
 		}
 		//Left
 		if (vpad_data.btn_trigger & BUTTON_LEFT) {
-			doclearstuff();
-			dog(&caveGlobals);
-			caveGlobals.row -= 1;
-			drawtitle(&caveGlobals);
-			drawmap(&caveGlobals);
-			flipBuffers();
+			if (canmove(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {	
+				doclearstuff();
+				dog(&caveGlobals);
+				caveGlobals.row -= 1;
+				drawtitle(&caveGlobals);
+				drawmap(&caveGlobals);
+				flipBuffers();
+			}
 		}
 		//Right
 		if (vpad_data.btn_trigger & BUTTON_RIGHT) {
-			doclearstuff();
-			dog(&caveGlobals);
-			caveGlobals.row += 1;
-			drawtitle(&caveGlobals);
-			drawmap(&caveGlobals);
-			flipBuffers();
+			if (canmove(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {	
+				doclearstuff();
+				dog(&caveGlobals);
+				caveGlobals.row += 1;
+				drawtitle(&caveGlobals);
+				drawmap(&caveGlobals);
+				flipBuffers();
+			}
 		}
 		//Plus
 		if (vpad_data.btn_trigger & BUTTON_PLUS) {
@@ -167,16 +174,6 @@ void _start()
 		//Minus
 		if (vpad_data.btn_trigger & BUTTON_MINUS) {
 
-		}
-		// Run (only down for now)
-		if (vpad_data.btn_hold & BUTTON_ZR) {
-			if (vpad_data.btn_hold & BUTTON_DOWN) {
-				doclearstuff();
-				dog(&caveGlobals);
-				caveGlobals.col += 1;
-				drawtitle(&caveGlobals);
-				flipBuffers();
-			}
 		}
 		//Grab Stuff (A)
 		if (vpad_data.btn_release & BUTTON_A) {
@@ -199,14 +196,15 @@ void doclearstuff() {
 //Boolean for bump mapbuff
 bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
 	// Matrix Pieces
-	#define TILE_FLOOR 0
+	#define TILE_VOID 0
 	#define TILE_WALL 1
-	#define TILE_WATER 2
+	#define TILE_FLOOR 2
+	#define TILE_WATER 3
+	#define TILE_CLOSEDOOR 4
+	#define TILE_OPENDOOR 5
 	// Do the thing
 	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
-	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_WATER ) {
-		return true;
-	}
+	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_WATER ) { return true; }
 	return false;
 }
 
@@ -232,23 +230,43 @@ void *memset(void *ptr, int value, uint32_t count) {
 	return ptr;
 }
 
+void *memcpy(void* dst, const void* src, uint32_t size)
+{
+    uint32_t i;
+    for (i = 0; i < size; i++)
+        ((uint8_t*) dst)[i] = ((const uint8_t*) src)[i];
+    return dst;
+}
+
 void drawmap(struct cGlobals *caveGlobals) {
 	// Matrix Pieces
-	#define TILE_FLOOR 0
+	#define TILE_VOID 0
 	#define TILE_WALL 1
-	#define TILE_WATER 2
+	#define TILE_FLOOR 2
+	#define TILE_WATER 3
+	#define TILE_CLOSEDOOR 4
+	#define TILE_OPENDOOR 5
 	// Draw each element in the matrix
 	int y;
 	int x;
-    for( y = 0; y < 15; y++ ) {
-        for( x = 0; x < 20; x++ ) {
+    for( y = 0; y < 17; y++ ) {
+        for( x = 0; x < 62; x++ ) {
             switch ( caveGlobals->nMapArray[y][x] ) {
-                case TILE_FLOOR:
+                case TILE_VOID:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "."); drawString(x, y, caveGlobals->mapbuff);
                 break;
                 case TILE_WALL:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "#"); drawString(x, y, caveGlobals->mapbuff);
                 break;
+                case TILE_FLOOR:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, " "); drawString(x, y, caveGlobals->mapbuff);
+                break;
+                case TILE_CLOSEDOOR:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, "+"); drawString(x, y, caveGlobals->mapbuff);
+                break;
+                case TILE_OPENDOOR:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, "/"); drawString(x, y, caveGlobals->mapbuff);
+                break;	
             }
         }
     }
@@ -256,31 +274,35 @@ void drawmap(struct cGlobals *caveGlobals) {
 
 void level1(struct cGlobals *caveGlobals) {
 	// Have an array! Height then width!
-	unsigned char lMapArray[15][20] = {
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	// By the way, Gamepad is -4, -1 to 65, 17! and TV is -4, -1 to 101, 27!
+	unsigned char lMapArray[17][62] = {
+	{ 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 2, 2, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+	{ 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 1, 1, 2, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0, 0, 1, 2, 1, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0, 0, 1, 2, 1, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0, 0, 1, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+	{ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }
 	};
 	// Fill our global array
 	int i;
 	int j;
-	for( i = 0; i < 15; i++) {
-		for( j = 0; j < 20; j++) {
+	for( i = 0; i < 17; i++) {
+		for( j = 0; j < 62; j++) {
 			caveGlobals->nMapArray[i][j]=lMapArray[i][j];
 		}
 	}
 	// Put the player where she belongs!
-	
+	caveGlobals->row = 3;
+	caveGlobals->col = 3;
 }
