@@ -34,8 +34,6 @@ void _start()
 	OSDynLoad_FindExport(sysapp_handle, 0, "SYSLaunchTitle", &SYSLaunchTitle);
 	int(*_Exit)();
 	OSDynLoad_FindExport(coreinit_handle, 0, "_Exit", &_Exit);
-	// int (*memset)();
-	// OSDynLoad_FindExport(coreinit_handle, 0, "memset", &memset);
    
     /****************************>       External Prototypes       <****************************/
     //OSScreen functions
@@ -222,15 +220,15 @@ void drawmap(struct cGlobals *caveGlobals) {
 	// Now draw each element in the x, y
 	int y;
 	int x;
-	char mapbuff[255];
+	char mapbuff[512];
     for( y = 0; y < 15; y++ ) {
         for( x = 0; x < 20; x++ ) {
             switch ( caveGlobals->nMapArray[y][x] ) {
                 case TILE_FLOOR:
-                    __os_snprintf(mapbuff,255, "."); drawString(x,y,mapbuff);
+                    __os_snprintf(mapbuff,512, "."); drawString(x,y,mapbuff);
                     break;
                 case TILE_WALL:
-                    __os_snprintf(mapbuff,255, "#"); drawString(x,y,mapbuff);
+                    __os_snprintf(mapbuff,512, "#"); drawString(x,y,mapbuff);
                     break;
             }
         }
