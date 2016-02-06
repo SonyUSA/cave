@@ -6,6 +6,8 @@ void drawmap();
 void dog();
 void level1();
 bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY );
+bool isclosedoor(struct cGlobals *caveGlobals, int nMapX, int nMapY );
+bool isopendoor(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 void *memcpy(void* dst, const void* src, uint32_t size);
 
 void _start()
@@ -122,6 +124,77 @@ void _start()
 			SYSLaunchMenu();
 			_Exit();
 		}
+		//Grab Stuff (A)
+		if (vpad_data.btn_release & BUTTON_A) {
+
+		}
+		//Open Stuff (X + Direction)
+		if (vpad_data.btn_hold & BUTTON_X) {
+			if (vpad_data.btn_trigger & BUTTON_DOWN) {
+				if (isclosedoor(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 5;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+				else if (isopendoor(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 4;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+			}
+			if (vpad_data.btn_trigger & BUTTON_UP) {
+				if (isclosedoor(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 5;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+				else if (isopendoor(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 4;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+			}			
+			if (vpad_data.btn_trigger & BUTTON_LEFT) {
+				if (isclosedoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 5;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+				else if (isopendoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 4;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+			}
+			if (vpad_data.btn_trigger & BUTTON_RIGHT) {
+				if (isclosedoor(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 5;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+				else if (isopendoor(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
+					doclearstuff();
+					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 4;
+					drawtitle(&caveGlobals);
+					drawmap(&caveGlobals);
+					flipBuffers();
+				}
+			}			
+		}
 		// Movement
 		//Down
 		if (vpad_data.btn_trigger & BUTTON_DOWN) {
@@ -175,11 +248,7 @@ void _start()
 		if (vpad_data.btn_trigger & BUTTON_MINUS) {
 
 		}
-		//Grab Stuff (A)
-		if (vpad_data.btn_release & BUTTON_A) {
-
-		}
-
+		
     }
 
 }
@@ -193,7 +262,7 @@ void doclearstuff() {
 	}
 }
 
-//Boolean for bump mapbuff
+//Boolean for bump map
 bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
 	// Matrix Pieces
 	#define TILE_VOID 0
@@ -204,7 +273,19 @@ bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
 	#define TILE_OPENDOOR 5
 	// Do the thing
 	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
-	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_WATER ) { return true; }
+	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_OPENDOOR || nTileValue == TILE_WATER ) { return true; }
+	return false;
+}
+
+//Boolean for doors
+bool isclosedoor(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
+	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
+	if ( nTileValue == 4 ) { return true; }
+	return false;
+}
+bool isopendoor(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
+	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
+	if ( nTileValue == 5 ) { return true; }
 	return false;
 }
 
