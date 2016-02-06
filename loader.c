@@ -237,11 +237,8 @@ void drawmap(struct cGlobals *caveGlobals) {
 }
 
 void level1(struct cGlobals *caveGlobals) {
-	// Matrix Pieces
-	#define TILE_FLOOR 0
-	#define TILE_WALL 1
 	// Have an array! Height then width!
-	int lMapArray[15][20] = {
+	unsigned char lMapArray[15][20] = {
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
@@ -262,7 +259,7 @@ void level1(struct cGlobals *caveGlobals) {
 	int i;
 	int j;
 	for( i = 0; i < 15; i++) {
-		for( j = 0; j < 20; i++) {
+		for( j = 0; j < 20; j++) {
 			caveGlobals->nMapArray[i][j]=lMapArray[i][j];
 		}
 	}
