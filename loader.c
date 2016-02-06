@@ -4,7 +4,7 @@ void doclearstuff();
 void drawtitle();
 void drawmap();
 void dog();
-// void *memset();
+void level1();
 
 void _start()
 {
@@ -93,10 +93,11 @@ void _start()
 	caveGlobals.gold = 0;
 	caveGlobals.row = 5;
 	caveGlobals.col = 5;
+	caveGlobals.level = 1;
 	
 	// Draw Buffers and Initial Screen
 	drawtitle(&caveGlobals);
-	drawmap(&caveGlobals);
+	// drawmap(&caveGlobals);
 	flipBuffers();
 	
     int err;
@@ -131,6 +132,7 @@ void _start()
 			dog(&caveGlobals);
 			caveGlobals.col -= 1;
 			drawtitle(&caveGlobals);
+
 			flipBuffers();
 		}
 		//Left
@@ -148,6 +150,28 @@ void _start()
 			caveGlobals.row += 1;
 			drawtitle(&caveGlobals);
 			flipBuffers();
+		}
+		//Plus
+		if (vpad_data.btn_trigger & BUTTON_PLUS) {
+			doclearstuff();
+			dog(&caveGlobals);
+			drawtitle(&caveGlobals);
+			drawmap(&caveGlobals);
+			flipBuffers();
+		}
+		//Minus
+		if (vpad_data.btn_trigger & BUTTON_MINUS) {
+			level1(&caveGlobals);
+		}
+		// Run (only down for now)
+		if (vpad_data.btn_hold & BUTTON_ZR) {
+			if (vpad_data.btn_hold & BUTTON_DOWN) {
+				doclearstuff();
+				dog(&caveGlobals);
+				caveGlobals.col += 1;
+				drawtitle(&caveGlobals);
+				flipBuffers();
+			}
 		}
 		//Grab Stuff (A)
 		if (vpad_data.btn_release & BUTTON_A) {
@@ -172,10 +196,10 @@ void doclearstuff() {
 void drawtitle(struct cGlobals *caveGlobals) {
 	// Draw the title bar and the main guy
 	__os_snprintf(caveGlobals->player1, 8, "@");
-	__os_snprintf(caveGlobals->titlebar1, 128, "Gold: %d      HP:          == C@VE ==             Press + for Menu", caveGlobals->gold);
-	//__os_snprintf(caveGlobals->titlebar2, 128, "%d / %d", caveGlobals->row, caveGlobals->col);
-	drawString(0, 0, caveGlobals->titlebar1);
-	//drawString(1, 0, caveGlobals->titlebar2);
+	__os_snprintf(caveGlobals->titlebar1, 128, "Gold: %d          HP:          == C@VE ==             Press + for Menu", caveGlobals->gold);
+	__os_snprintf(caveGlobals->titlebar2, 128, "X %d / Y %d", caveGlobals->row, caveGlobals->col);
+	drawString(-4, -1, caveGlobals->titlebar1);
+	drawString(-4, 17, caveGlobals->titlebar2);
 	drawString(caveGlobals->row, caveGlobals->col, caveGlobals->player1);
 }
 
@@ -192,9 +216,27 @@ void *memset(void *ptr, int value, uint32_t count) {
 }
 
 void drawmap(struct cGlobals *caveGlobals) {
+	// Matrix Pieces
+	#define TILE_FLOOR 0
+	#define TILE_WALL 1
+	// Draw each element in the matrix
+	int y;
+	int x;
+    for( y = 0; y < 15; y++ ) {
+        for( x = 0; x < 20; x++ ) {
+            switch ( caveGlobals->nMapArray[y][x] ) {
+                case TILE_FLOOR:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, "."); drawString(x, y, caveGlobals->mapbuff);
+                    break;
+                case TILE_WALL:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, "#"); drawString(x, y, caveGlobals->mapbuff);
+                    break;
+            }
+        }
+    }
+}
 
-	//#define memset ((void (*)(void* ptr, int value, uint32_t num))0x0102A3B4)
-	
+void level1(struct cGlobals *caveGlobals) {
 	// Matrix Pieces
 	#define TILE_FLOOR 0
 	#define TILE_WALL 1
@@ -219,25 +261,11 @@ void drawmap(struct cGlobals *caveGlobals) {
 	// Fill our global array
 	int i;
 	int j;
-	for( i = 0; i < 15; i++) {
-		for( j = 0; j < 20; i++) {
+	for( i = 0; i < 20; i++) {
+		for( j = 0; j < 15; i++) {
         caveGlobals->nMapArray[i][j]=nMapArray[i][j];
 		}
 	}
-	// Now draw each element in the x, y
-	int y;
-	int x;
-	char mapbuff[512];
-    for( y = 0; y < 15; y++ ) {
-        for( x = 0; x < 20; x++ ) {
-            switch ( caveGlobals->nMapArray[y][x] ) {
-                case TILE_FLOOR:
-                    __os_snprintf(mapbuff,512, "."); drawString(x,y,mapbuff);
-                    break;
-                case TILE_WALL:
-                    __os_snprintf(mapbuff,512, "#"); drawString(x,y,mapbuff);
-                    break;
-            }
-        }
-    }
+	// Put the player where she belongs!
+	
 }
