@@ -4,12 +4,14 @@ void doclearstuff();
 void drawtitle();
 void drawmap();
 void dog();
+void drawstuff();
 void level1();
 bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 bool isclosedoor(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 bool isopendoor(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 bool istrap(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 bool ishtrap(struct cGlobals *caveGlobals, int nMapX, int nMapY );
+bool ishdoor(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 void *memcpy(void* dst, const void* src, uint32_t size);
 
 void _start()
@@ -95,8 +97,7 @@ void _start()
 	struct cGlobals caveGlobals;
 	
 	// Variables n stuff!
-	caveGlobals.menu = 1;
-	caveGlobals.gold = 0;
+	caveGlobals.food = 0;
 	caveGlobals.row = 1;
 	caveGlobals.col = 1;
 	caveGlobals.level = 1;
@@ -111,8 +112,8 @@ void _start()
 	
 	// Draw Buffers and Initial Screen
 	__os_snprintf(caveGlobals.mystat, 64, " ");
-	drawtitle(&caveGlobals);
-	drawmap(&caveGlobals);
+	doclearstuff();
+	drawstuff(&caveGlobals);
 	flipBuffers();
 	
     int err;
@@ -123,7 +124,7 @@ void _start()
 		// Quit
 		if (vpad_data.btn_trigger & BUTTON_HOME) {
 			doclearstuff();
-			__os_snprintf(caveGlobals.endgame, 256, "Thanks for Playing!\nYour Final Gold: %d \n\n\nBy: SonyUSA", caveGlobals.gold);
+			__os_snprintf(caveGlobals.endgame, 256, "Thanks for Playing!\nYour Final Level: %d \n\n\nBy: SonyUSA", caveGlobals.level);
 			drawString(0, 0, caveGlobals.endgame);
 			flipBuffers();
 			t1 = 0x50000000;
@@ -132,72 +133,217 @@ void _start()
 			_Exit();
 		}
 		//Grab Stuff (A)
-		if (vpad_data.btn_release & BUTTON_A) {
-
+		if (vpad_data.btn_trigger & BUTTON_A) {
+			if (caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] == 8) {
+				doclearstuff();
+				__os_snprintf(caveGlobals.mystat, 64, "Got it!");
+				drawString(25, 17, caveGlobals.mystat);
+				caveGlobals.food += 1;
+				caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] = 2;
+				drawstuff(&caveGlobals);
+				flipBuffers();
+			}
+			if (caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] == 11) {
+				doclearstuff();
+				__os_snprintf(caveGlobals.mystat, 64, "*Gulp!*");
+				drawString(25, 17, caveGlobals.mystat);
+				caveGlobals.curhealth += 5;
+				caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] = 2;
+				//Make sure we don't go over health limit
+				if (caveGlobals.curhealth > caveGlobals.maxhealth) { caveGlobals.curhealth = caveGlobals.maxhealth; }
+				drawstuff(&caveGlobals);
+				dog(&caveGlobals);
+				flipBuffers();				
+			}
+		}
+		//Search for Hidden Traps and Doors
+		if (vpad_data.btn_trigger & BUTTON_Y) {			
+			doclearstuff();
+			drawstuff(&caveGlobals);
+			//Ask the player which way to search
+			__os_snprintf(caveGlobals.mystat, 64, "Search Which Way?");
+			drawString(22, 17, caveGlobals.mystat);
+			flipBuffers();
+			//Lets use a while loop so players cant just hold down search while they are walking! Cheating gits!
+			while(2) {
+				VPADRead(0, &vpad_data, 1, &err);
+				// Search Up
+				if (vpad_data.btn_release & BUTTON_UP) {
+					// Traps
+					if (ishtrap(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "It's a trap!");
+						drawString(25, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 6;
+						drawstuff(&caveGlobals);
+						flipBuffers();
+						break;
+					}
+					// Doors
+					if (ishdoor(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "A Secret Door!");
+						drawString(22, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 4;
+						drawstuff(&caveGlobals);
+						flipBuffers();
+						break;
+					}					
+					// If nothing is found...
+					doclearstuff();
+					drawstuff(&caveGlobals);
+					__os_snprintf(caveGlobals.mystat, 64, "Nothing There!");
+					drawString(23, 17, caveGlobals.mystat);
+					flipBuffers();
+					break;
+				}
+				// Search Down
+				if (vpad_data.btn_release & BUTTON_DOWN) {
+					// Traps
+					if (ishtrap(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "It's a trap!");
+						drawString(25, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 6;
+						drawstuff(&caveGlobals);						
+						flipBuffers();
+						break;
+					}
+					// Doors
+					if (ishdoor(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "A Secret Door!");
+						drawString(22, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 4;
+						drawstuff(&caveGlobals);						
+						flipBuffers();
+						break;
+					}					
+					// If nothing is found...
+					doclearstuff();
+					drawstuff(&caveGlobals);
+					__os_snprintf(caveGlobals.mystat, 64, "Nothing There!");
+					drawString(23, 17, caveGlobals.mystat);
+					flipBuffers();
+					break;
+				}
+				// Search Right
+				if (vpad_data.btn_release & BUTTON_RIGHT) {
+					// Traps
+					if (ishtrap(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "It's a trap!");
+						drawString(25, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 6;
+						drawstuff(&caveGlobals);
+						flipBuffers();
+						break;
+					}
+					// Doors
+					if (ishdoor(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "A Secret Door!");
+						drawString(22, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 4;
+						drawstuff(&caveGlobals);						
+						flipBuffers();
+						break;
+					}					
+					// If nothing is found...
+					doclearstuff();
+					drawstuff(&caveGlobals);
+					__os_snprintf(caveGlobals.mystat, 64, "Nothing There!");
+					drawString(23, 17, caveGlobals.mystat);
+					flipBuffers();
+					break;
+				}
+				// Search Left
+				if (vpad_data.btn_release & BUTTON_LEFT) {
+					// Traps
+					if (ishtrap(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "It's a trap!");
+						drawString(25, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 6;
+						drawstuff(&caveGlobals);						
+						flipBuffers();
+						break;
+					}
+					// Doors
+					if (ishdoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
+						doclearstuff();
+						__os_snprintf(caveGlobals.mystat, 64, "A Secret Door!");
+						drawString(22, 17, caveGlobals.mystat);
+						caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 4;
+						drawstuff(&caveGlobals);
+						flipBuffers();
+						break;
+					}					
+					// If nothing is found...
+					doclearstuff();
+					drawstuff(&caveGlobals);
+					__os_snprintf(caveGlobals.mystat, 64, "Nothing There!");
+					drawString(23, 17, caveGlobals.mystat);
+					flipBuffers();
+					break;
+				}
+			}
 		}
 		//Open and Close Doors (X + Direction)
 		if (vpad_data.btn_hold & BUTTON_X) {
 			if (vpad_data.btn_trigger & BUTTON_DOWN) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 5;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 				else if (isopendoor(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 4;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 			}
 			if (vpad_data.btn_trigger & BUTTON_UP) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 5;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 				else if (isopendoor(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 4;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 			}			
 			if (vpad_data.btn_trigger & BUTTON_LEFT) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 5;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 				else if (isopendoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 4;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 			}
 			if (vpad_data.btn_trigger & BUTTON_RIGHT) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 5;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 				else if (isopendoor(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
 					doclearstuff();
+					drawstuff(&caveGlobals);
 					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 4;
-					drawtitle(&caveGlobals);
-					drawmap(&caveGlobals);
 					flipBuffers();
 				}
 			}
@@ -209,8 +355,7 @@ void _start()
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.col += 1;
-				drawtitle(&caveGlobals);
-				drawmap(&caveGlobals);
+				drawstuff(&caveGlobals);
 				if (istrap(&caveGlobals, caveGlobals.row, caveGlobals.col ) == true ) {
 					__os_snprintf(caveGlobals.mystat, 64, "Ouch!");
 					drawString(25, 17, caveGlobals.mystat);
@@ -231,8 +376,7 @@ void _start()
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.col -= 1;
-				drawtitle(&caveGlobals);
-				drawmap(&caveGlobals);
+				drawstuff(&caveGlobals);
 				if (istrap(&caveGlobals, caveGlobals.row, caveGlobals.col ) == true ) {
 					__os_snprintf(caveGlobals.mystat, 64, "Ouch!");
 					drawString(25, 17, caveGlobals.mystat);
@@ -253,8 +397,7 @@ void _start()
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.row -= 1;
-				drawtitle(&caveGlobals);
-				drawmap(&caveGlobals);
+				drawstuff(&caveGlobals);
 				if (istrap(&caveGlobals, caveGlobals.row, caveGlobals.col ) == true ) {
 					__os_snprintf(caveGlobals.mystat, 64, "Ouch!");
 					drawString(25, 17, caveGlobals.mystat);
@@ -275,8 +418,7 @@ void _start()
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.row += 1;
-				drawtitle(&caveGlobals);
-				drawmap(&caveGlobals);
+				drawstuff(&caveGlobals);
 				if (istrap(&caveGlobals, caveGlobals.row, caveGlobals.col ) == true ) {
 					__os_snprintf(caveGlobals.mystat, 64, "Ouch!");
 					drawString(25, 17, caveGlobals.mystat);
@@ -291,13 +433,21 @@ void _start()
 				flipBuffers();
 			}
 		}
-		//Plus
+		//Feed the doggy
 		if (vpad_data.btn_trigger & BUTTON_PLUS) {
-
-		}
-		//Minus
-		if (vpad_data.btn_trigger & BUTTON_MINUS) {
-
+			if (caveGlobals.food >= 1) {
+				doclearstuff();
+				__os_snprintf(caveGlobals.mystat, 64, "*crunch* Woof!");
+				drawString(24, 17, caveGlobals.mystat);
+				caveGlobals.food -= 1;
+				caveGlobals.dogsteps -= 50;
+				//Make sure we don't go negative in dog health
+				if (caveGlobals.dogsteps <= 0) { caveGlobals.dogsteps = 0;}
+				drawstuff(&caveGlobals);
+				dog(&caveGlobals);
+				flipBuffers();
+			}
+		
 		}
 		// Check if the player is dead
 		if(caveGlobals.curhealth == 0) {
@@ -314,6 +464,10 @@ void _start()
 
 }
 
+void drawstuff(struct cGlobals *caveGlobals) {
+	drawtitle(caveGlobals);
+	drawmap(caveGlobals);
+}
 void doclearstuff() {
 	int ii = 0;
 	for (ii; ii < 2; ii++)
@@ -336,9 +490,11 @@ bool canmove(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
 	#define TILE_HTRAP 7
 	#define TILE_FOOD 8
 	#define TILE_STAIRS 9
+	#define TILE_SDOOR 10
+	#define TILE_POTION 11
 	// Do the thing
 	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
-	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_OPENDOOR || nTileValue == TILE_WATER || nTileValue == TILE_TRAP || nTileValue == TILE_HTRAP || nTileValue == TILE_FOOD || nTileValue == TILE_STAIRS ) { return true; }
+	if ( nTileValue == TILE_FLOOR || nTileValue == TILE_OPENDOOR || nTileValue == TILE_WATER || nTileValue == TILE_TRAP || nTileValue == TILE_HTRAP || nTileValue == TILE_FOOD || nTileValue == TILE_STAIRS || nTileValue == TILE_POTION ) { return true; }
 	return false;
 }
 
@@ -366,11 +522,18 @@ bool ishtrap(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
 	return false;
 }
 
+//Boolean for hidden doors
+bool ishdoor(struct cGlobals *caveGlobals, int nMapX, int nMapY) {
+	int nTileValue = caveGlobals->nMapArray[nMapY][nMapX];
+	if ( nTileValue == 10 ) { return true; }
+	return false;
+}
+
+// Draw the title bar and the main guy
 void drawtitle(struct cGlobals *caveGlobals) {
-	// Draw the title bar and the main guy
 	__os_snprintf(caveGlobals->player1, 8, "@");
-	__os_snprintf(caveGlobals->titlebar1, 128, "Gold:         HP:   /          == C@VE ==             Press + for Menu");
-	__os_snprintf(caveGlobals->titlebar3, 128, "      %d           %d  %d ", caveGlobals->gold, caveGlobals->curhealth, caveGlobals->maxhealth );
+	__os_snprintf(caveGlobals->titlebar1, 128, "Food:       HP:   /           == C@VE ==              Feed Dog With + ");
+	__os_snprintf(caveGlobals->titlebar3, 128, "      %d         %d  %d ", caveGlobals->food, caveGlobals->curhealth, caveGlobals->maxhealth );
 	__os_snprintf(caveGlobals->titlebar2, 128, "X %d / Y %d", caveGlobals->row, caveGlobals->col);
 	__os_snprintf(caveGlobals->mystat, 64, " ");
 	drawString(-4, -1, caveGlobals->titlebar1);
@@ -381,10 +544,16 @@ void drawtitle(struct cGlobals *caveGlobals) {
 }
 
 void dog(struct cGlobals *caveGlobals) {
+	// Figure out the players last position and put the dog there
+	caveGlobals->dogrow = caveGlobals->row;
+	caveGlobals->dogcol = caveGlobals->col;
 	// Increment his "health"
 	caveGlobals->dogsteps += 1;
 	// Health levels
-	if (caveGlobals->dogsteps <= 60) {
+	if (caveGlobals->dogsteps <= 0) {
+		__os_snprintf(caveGlobals->dogstat, 64, "Dog: Cheater!");
+	}
+	if (caveGlobals->dogsteps > 0 && caveGlobals->dogsteps <= 60) {
 		__os_snprintf(caveGlobals->dogstat, 64, "Dog: Full");
 	}
 	if (caveGlobals->dogsteps > 61 && caveGlobals->dogsteps <= 120) {
@@ -406,7 +575,7 @@ void dog(struct cGlobals *caveGlobals) {
 	// Puts a symbol where the player used to be (or not if dead) print his status
 	if (caveGlobals->dogalive == 1 ) {
 		__os_snprintf(caveGlobals->doggy, 8, "d");
-		drawString(caveGlobals->row, caveGlobals->col, caveGlobals->doggy);
+		drawString(caveGlobals->dogrow, caveGlobals->dogcol, caveGlobals->doggy);
 	}
 	drawString(-4, 17, caveGlobals->dogstat);
 }
@@ -437,6 +606,8 @@ void drawmap(struct cGlobals *caveGlobals) {
 	#define TILE_HTRAP 7
 	#define TILE_FOOD 8
 	#define TILE_STAIRS 9
+	#define TILE_SDOOR 10
+	#define TILE_POTION 11
 	// Draw each element in the matrix
 	int y;
 	int x;
@@ -472,8 +643,14 @@ void drawmap(struct cGlobals *caveGlobals) {
                 break;
                 case TILE_STAIRS:
                     __os_snprintf(caveGlobals->mapbuff, 2800, ">"); drawString(x, y, caveGlobals->mapbuff);
-                break;					
-            }
+                break;
+                case TILE_SDOOR:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, "#"); drawString(x, y, caveGlobals->mapbuff);
+                break;
+                case TILE_POTION:
+                    __os_snprintf(caveGlobals->mapbuff, 2800, "p"); drawString(x, y, caveGlobals->mapbuff);
+                break;				
+			}
         }
     }
 }
@@ -482,23 +659,23 @@ void level1(struct cGlobals *caveGlobals) {
 	// Have an array! Height then width!
 	// By the way, Gamepad is -4, -1 to 65, 17! and TV is -4, -1 to 101, 27!
 	unsigned char lMapArray[17][62] = {
-	{ 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 2, 2, 4, 2, 7, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 9, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-	{ 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 1, 1, 1, 2, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 2, 1, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 2, 1, 0, 0, 0, 0, 1, 2, 2, 6, 8, 6, 2, 2, 6, 2, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 6, 2, 2, 6, 2, 2, 2, 1, 0, 1, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-	{ 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 6, 2, 2, 2, 1, 0, 1, 2, 2, 2, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-	{ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 }
+	{ 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 2, 2, 4, 2, 7, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 8, 2, 1, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 2, 1, 0, 0, 0, 1, 2, 2, 3, 3, 3, 3, 3, 3, 5, 2, 2, 2, 4, 2, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 2, 1, 0, 0, 0, 1, 2, 2, 2, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 0, 0, 0, 1, 2, 1, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0 },
+	{ 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 1, 0, 1, 1, 1, 2, 1, 1, 1, 2, 2, 2, 1, 0, 1, 1, 1, 1, 1 },
+	{ 1, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 1, 0, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2, 1 },
+	{ 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 1, 0, 1, 8, 1, 1, 1, 1, 1, 4, 1, 1, 1, 0, 1, 2, 9, 2, 1 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 1, 0, 1, 2,10, 2, 2, 2, 2, 2, 2, 1, 0, 0, 1, 2, 2, 2, 1 },
+	{ 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 1, 0, 1, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 1 },
+	{ 1, 1, 1, 2, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 1, 0, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 1, 0, 0, 0, 1, 2, 1, 2,11, 2, 2, 4, 2, 2, 2, 2, 2, 2, 1 },
+	{ 0, 0, 1, 2, 1, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1 },
+	{ 0, 0, 1, 2, 1, 0, 0, 0, 0, 1, 2, 2, 6, 8, 6, 2, 2, 6, 2, 2, 1, 0, 1, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 1 },
+	{ 0, 0, 1, 2, 1, 1, 1, 1, 1, 1, 2, 2, 2, 6, 2, 2, 6, 2, 2, 2, 1, 0, 1, 2, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 7, 2, 2, 2, 2, 1, 2, 2, 2, 1, 0, 1, 1, 1, 1, 1, 1, 1 },
+	{ 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 6, 2, 2, 2, 2, 6, 2, 2, 2, 1, 0, 1, 2, 2, 2, 4, 2, 2, 2, 2, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{ 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 }
 	};
 	// Fill our global array
 	int i;
