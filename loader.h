@@ -8,10 +8,11 @@
 
 struct cGlobals { 
 	// Important Stuff
-	int menu; 
-	int gold;
+	int food;
 	int row;
 	int col;
+	int dogrow;
+	int dogcol;
 	int level;
 	int dogsteps;
 	int dogalive;
