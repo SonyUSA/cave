@@ -160,6 +160,7 @@ void _start()
 		if (vpad_data.btn_trigger & BUTTON_Y) {			
 			doclearstuff();
 			drawstuff(&caveGlobals);
+			dog(&caveGlobals);
 			//Ask the player which way to search
 			__os_snprintf(caveGlobals.mystat, 64, "Search Which Way?");
 			drawString(22, 17, caveGlobals.mystat);
@@ -435,17 +436,19 @@ void _start()
 		}
 		//Feed the doggy
 		if (vpad_data.btn_trigger & BUTTON_PLUS) {
-			if (caveGlobals.food >= 1) {
-				doclearstuff();
-				__os_snprintf(caveGlobals.mystat, 64, "*crunch* Woof!");
-				drawString(24, 17, caveGlobals.mystat);
-				caveGlobals.food -= 1;
-				caveGlobals.dogsteps -= 50;
-				//Make sure we don't go negative in dog health
-				if (caveGlobals.dogsteps <= 0) { caveGlobals.dogsteps = 0;}
-				drawstuff(&caveGlobals);
-				dog(&caveGlobals);
-				flipBuffers();
+			if (caveGlobals.dogalive == 1) {
+				if (caveGlobals.food >= 1) {
+					doclearstuff();
+					__os_snprintf(caveGlobals.mystat, 64, "*crunch* Woof!");
+					drawString(24, 17, caveGlobals.mystat);
+					caveGlobals.food -= 1;
+					caveGlobals.dogsteps -= 60;
+					//Make sure we don't go negative in dog health
+					if (caveGlobals.dogsteps <= 0) { caveGlobals.dogsteps = 0;}
+					drawstuff(&caveGlobals);
+					dog(&caveGlobals);
+					flipBuffers();
+				}
 			}
 		
 		}
@@ -608,11 +611,17 @@ void drawmap(struct cGlobals *caveGlobals) {
 	#define TILE_STAIRS 9
 	#define TILE_SDOOR 10
 	#define TILE_POTION 11
-	// Draw each element in the matrix
+	// Draw each element in the matrix using a viewscope of 4 tiles around the player
 	int y;
 	int x;
-    for( y = 0; y < 17; y++ ) {
-        for( x = 0; x < 62; x++ ) {
+	// Make sure we don't look outside the matrix on accident...
+	int yy = caveGlobals->col-4;
+	if (yy < 0) { yy = 0;}
+	int xx = caveGlobals->row-4;
+	if (xx < 0) { xx = 0;}
+	// Now draw everything!
+    for( y = yy; y < caveGlobals->col+5 && y < 17; y++ ) {
+        for( x = xx; x < caveGlobals->row+5 && x < 62; x++ ) {
             switch ( caveGlobals->nMapArray[y][x] ) {
                 case TILE_VOID:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "."); drawString(x, y, caveGlobals->mapbuff);
