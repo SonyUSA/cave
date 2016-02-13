@@ -562,7 +562,7 @@ void drawtitle(struct cGlobals *caveGlobals) {
 	__os_snprintf(caveGlobals->mystat, 64, " ");
 	drawString(-4, -1, caveGlobals->titlebar1);
 	drawString(-4, -1, caveGlobals->titlebar3);
-	drawString(44, 17, caveGlobals->titlebar2);
+	drawString(46, 17, caveGlobals->titlebar2);
 	drawString(caveGlobals->row, caveGlobals->col, caveGlobals->player1);
 	drawString(25, 17, caveGlobals->mystat);
 }
@@ -720,7 +720,7 @@ void changelevel(struct cGlobals *caveGlobals) {
 			}
 		}
 		// Who made it???
-		__os_snprintf(caveGlobals->titlebar2, 128, "Level by: SonyUSA");
+		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: SonyUSA");
 	}
 	if (caveGlobals->level == 2) {
 		unsigned char lMapArray[17][62] = {	
@@ -754,7 +754,7 @@ void changelevel(struct cGlobals *caveGlobals) {
 			}
 		}
 		// Who made it???
-		__os_snprintf(caveGlobals->titlebar2, 128, "Level by: ScarletDreamz");		
+		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: ScarletDreamz");		
 	}	
 
 }
