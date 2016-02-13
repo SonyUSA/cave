@@ -114,14 +114,15 @@ $(BUILD):
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(OUTPUT).elf $(OUTPUT).bin
-	
-	#This should stop new builds from using old code (-SonyUSA)
-	@rm -fr build
-	#And just because I'm picky... (-SonyUSA)
-	@mkdir bin
-	@mv boot.elf /bin/
-	@mv build_dbg.elf /bin/
 
+#This should stop new builds from using old code (-SonyUSA)
+	@rm -fr build
+	@rm -fr bin
+#And just because I'm picky... (-SonyUSA)
+	mkdir bin
+	mv boot.elf /bin/
+	mv build_dbg.elf /bin/
+	
 #---------------------------------------------------------------------------------
 else
 
@@ -153,3 +154,4 @@ $(OUTPUT).elf: $(OFILES)
 #---------------------------------------------------------------------------------
 endif
 #---------------------------------------------------------------------------------
+
