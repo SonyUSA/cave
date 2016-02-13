@@ -476,7 +476,8 @@ void doclearstuff() {
 	for (ii; ii < 2; ii++)
 	{
 		fillScreen(0,0,0,0);
-		flipBuffers();
+		//Oops, don't do this anymore!
+		//flipBuffers();
 	}
 }
 
