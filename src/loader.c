@@ -1,6 +1,6 @@
 #include "loader.h"
 #include "init.h"
- 
+
 void doclearstuff();
 void drawtitle();
 void drawmap();
@@ -25,26 +25,28 @@ void _main()
         );
     /****************************>           Get Handles           <****************************/
     //Get a handle to coreinit.rpl
-    unsigned int coreinit_handle, vpad_handle, sysapp_handle;
+    unsigned int coreinit_handle, vpad_handle, sysapp_handle, avm_handle;
     OSDynLoad_Acquire("coreinit.rpl", &coreinit_handle);
     OSDynLoad_Acquire("vpad.rpl", &vpad_handle);
     OSDynLoad_Acquire("sysapp.rpl", &sysapp_handle);
-   
+    // CreeperMario: Get a handle to the audio/video manager - avm.rpl
+    OSDynLoad_Acquire("avm.rpl", &avm_handle);
+
     // STUFF
     VPADData vpad_data;
     int(*VPADRead)(int controller, VPADData *buffer, unsigned int num, int *err);
     OSDynLoad_FindExport(vpad_handle, 0, "VPADRead", &VPADRead);
-   
+
     // Sysapp stuff
     int(*SYSLaunchMenu)();
     OSDynLoad_FindExport(sysapp_handle, 0, "SYSLaunchMenu", &SYSLaunchMenu);
-	
+
 	// please dont break stuff...
 	int(*SYSLaunchTitle) (int bit1, int bit2);
 	OSDynLoad_FindExport(sysapp_handle, 0, "SYSLaunchTitle", &SYSLaunchTitle);
 	int(*_Exit)();
 	OSDynLoad_FindExport(coreinit_handle, 0, "_Exit", &_Exit);
-   
+
     /****************************>       External Prototypes       <****************************/
     //OSScreen functions
     void(*OSScreenInit)();
@@ -58,6 +60,8 @@ void _main()
     int(*IM_Open)();
     int(*IM_Close)(int fd);
     int(*IM_SetDeviceState)(int fd, void *mem, int state, int a, int b);
+    // CreeperMario: TV Screen scaling functions
+    bool(*AVMSetTVScale)(int width, int height);
     /****************************>             Exports             <****************************/
     //OSScreen functions
     OSDynLoad_FindExport(coreinit_handle, 0, "OSScreenInit", &OSScreenInit);
@@ -71,6 +75,12 @@ void _main()
     OSDynLoad_FindExport(coreinit_handle, 0, "IM_Open", &IM_Open);
     OSDynLoad_FindExport(coreinit_handle, 0, "IM_Close", &IM_Close);
     OSDynLoad_FindExport(coreinit_handle, 0, "IM_SetDeviceState", &IM_SetDeviceState);
+    // CreeperMario: TV Screen scaling functions
+    OSDynLoad_FindExport(avm_handle, 0, "AVMSetTVScale", &AVMSetTVScale);
+
+    /*** CreeperMario: Set the TV screen to the proper 'scale factor'. ***/
+    AVMSetTVScale(854, 480);
+
     /****************************>          Initial Setup          <****************************/
     //Restart system to get lib access
     int fd = IM_Open();
@@ -96,7 +106,7 @@ void _main()
 
 	// Define struct for global variables!
 	struct cGlobals caveGlobals;
-	
+
 	// Variables n stuff!
 	caveGlobals.food = 0;
 	caveGlobals.row = 1;
@@ -107,21 +117,21 @@ void _main()
 	caveGlobals.mysteps = 0;
 	caveGlobals.maxhealth = 10;
 	caveGlobals.curhealth = 10;
-	
+
 	// Start at level 1 (obviously!)
 	changelevel(&caveGlobals);
-	
+
 	// Draw Buffers and Initial Screen
 	__os_snprintf(caveGlobals.mystat, 64, " ");
 	doclearstuff();
 	drawstuff(&caveGlobals);
 	flipBuffers();
-	
+
     int err;
-   
+
     while(1) {
 		VPADRead(0, &vpad_data, 1, &err);
-		
+
 		// Quit
 		if (vpad_data.btn_trigger & BUTTON_HOME) {
 			doclearstuff();
@@ -162,7 +172,7 @@ void _main()
 				if (caveGlobals.curhealth > caveGlobals.maxhealth) { caveGlobals.curhealth = caveGlobals.maxhealth; }
 				drawstuff(&caveGlobals);
 				dog(&caveGlobals);
-				flipBuffers();				
+				flipBuffers();
 			}
 			//Checks for Stairs
 			if (caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] == 9) {
@@ -174,7 +184,7 @@ void _main()
 			}
 		}
 		//Search for Hidden Traps and Doors
-		if (vpad_data.btn_trigger & BUTTON_Y) {			
+		if (vpad_data.btn_trigger & BUTTON_Y) {
 			doclearstuff();
 			drawstuff(&caveGlobals);
 			dog(&caveGlobals);
@@ -206,7 +216,7 @@ void _main()
 						drawstuff(&caveGlobals);
 						flipBuffers();
 						break;
-					}					
+					}
 					// If nothing is found...
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -223,7 +233,7 @@ void _main()
 						__os_snprintf(caveGlobals.mystat, 64, "It's a trap!");
 						drawString(25, 17, caveGlobals.mystat);
 						caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 6;
-						drawstuff(&caveGlobals);						
+						drawstuff(&caveGlobals);
 						flipBuffers();
 						break;
 					}
@@ -233,10 +243,10 @@ void _main()
 						__os_snprintf(caveGlobals.mystat, 64, "A Secret Door!");
 						drawString(22, 17, caveGlobals.mystat);
 						caveGlobals.nMapArray[caveGlobals.col +1][caveGlobals.row] = 4;
-						drawstuff(&caveGlobals);						
+						drawstuff(&caveGlobals);
 						flipBuffers();
 						break;
-					}					
+					}
 					// If nothing is found...
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -263,10 +273,10 @@ void _main()
 						__os_snprintf(caveGlobals.mystat, 64, "A Secret Door!");
 						drawString(22, 17, caveGlobals.mystat);
 						caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row +1] = 4;
-						drawstuff(&caveGlobals);						
+						drawstuff(&caveGlobals);
 						flipBuffers();
 						break;
-					}					
+					}
 					// If nothing is found...
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -283,7 +293,7 @@ void _main()
 						__os_snprintf(caveGlobals.mystat, 64, "It's a trap!");
 						drawString(25, 17, caveGlobals.mystat);
 						caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row -1] = 6;
-						drawstuff(&caveGlobals);						
+						drawstuff(&caveGlobals);
 						flipBuffers();
 						break;
 					}
@@ -296,7 +306,7 @@ void _main()
 						drawstuff(&caveGlobals);
 						flipBuffers();
 						break;
-					}					
+					}
 					// If nothing is found...
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -336,7 +346,7 @@ void _main()
 					caveGlobals.nMapArray[caveGlobals.col -1][caveGlobals.row] = 4;
 					flipBuffers();
 				}
-			}			
+			}
 			if (vpad_data.btn_trigger & BUTTON_LEFT) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 					doclearstuff();
@@ -369,7 +379,7 @@ void _main()
 		// Movement
 		//Down
 		if (vpad_data.btn_trigger & BUTTON_DOWN) {
-			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {	
+			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.col += 1;
@@ -384,13 +394,13 @@ void _main()
 					drawString(25, 17, caveGlobals.mystat);
 					caveGlobals.curhealth -= 1;
 					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] = 6;
-				}				
+				}
 				flipBuffers();
 			}
 		}
 		//Up
 		if (vpad_data.btn_trigger & BUTTON_UP) {
-			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {	
+			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.col -= 1;
@@ -405,13 +415,13 @@ void _main()
 					drawString(25, 17, caveGlobals.mystat);
 					caveGlobals.curhealth -= 1;
 					caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] = 6;
-				}				
+				}
 				flipBuffers();
 			}
 		}
 		//Left
 		if (vpad_data.btn_trigger & BUTTON_LEFT) {
-			if (canmove(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {	
+			if (canmove(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.row -= 1;
@@ -432,7 +442,7 @@ void _main()
 		}
 		//Right
 		if (vpad_data.btn_trigger & BUTTON_RIGHT) {
-			if (canmove(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {	
+			if (canmove(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
 				caveGlobals.row += 1;
@@ -467,7 +477,7 @@ void _main()
 					flipBuffers();
 				}
 			}
-		
+
 		}
 		// Check if the player is dead
 		if(caveGlobals.curhealth == 0) {
@@ -601,7 +611,7 @@ void dog(struct cGlobals *caveGlobals) {
 	if (caveGlobals->dogsteps > 301) {
 		__os_snprintf(caveGlobals->dogstat, 64, "Dog: Dead");
 		caveGlobals->dogalive = 0;
-	}	
+	}
 	// Puts a symbol where the player used to be (or not if dead) print his status
 	if (caveGlobals->dogalive == 1 ) {
 		__os_snprintf(caveGlobals->doggy, 8, "d");
@@ -661,7 +671,7 @@ void drawmap(struct cGlobals *caveGlobals) {
                 break;
                 case TILE_WATER:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "~"); drawString(x, y, caveGlobals->mapbuff);
-                break;				
+                break;
                 case TILE_CLOSEDOOR:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "+"); drawString(x, y, caveGlobals->mapbuff);
                 break;
@@ -685,7 +695,7 @@ void drawmap(struct cGlobals *caveGlobals) {
                 break;
                 case TILE_POTION:
                     __os_snprintf(caveGlobals->mapbuff, 2800, "p"); drawString(x, y, caveGlobals->mapbuff);
-                break;				
+                break;
 			}
         }
     }
@@ -729,7 +739,7 @@ void changelevel(struct cGlobals *caveGlobals) {
 		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: SonyUSA");
 	}
 	if (caveGlobals->level == 2) {
-		unsigned char lMapArray[17][62] = {	
+		unsigned char lMapArray[17][62] = {
 		{1,1,1,1,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1},
 		{1,6,2,8,2,6,1,0,0,0,1,7,1,0,0,0,1,8,1,0,0,0,1,7,1,0,0,1,2,8,2,2,2,2,2,1,0,0,0,0,1,2,2,2,1,0,0,1,6,1,0,0,0,0,1,2,2,2,2,7,2,1},
 		{1,2,2,2,2,2,1,0,0,0,1,2,1,0,0,0,1,2,1,0,0,0,1,2,1,0,0,1,1,1,1,1,1,2,1,1,0,0,0,0,1,2,7,2,1,0,0,1,8,1,0,0,1,1,1,2,1,1,1,1,2,1},
@@ -746,7 +756,7 @@ void changelevel(struct cGlobals *caveGlobals) {
 		{0,0,0,0,0,0,0,1,2,2,6,2,2,1,0,0,0,0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0,0,1,2,2,2,2,2,2,2,1,1,1,1,1,1,0,0,0,0,1,2,1,0,0,1,2,1},
 		{1,1,1,1,1,1,1,1,2,2,8,2,2,1,0,0,0,0,1,8,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,2,2,2,2,2,2,2,1,0,0,0,0,0,1,1,1,1,1,2,1,1,1,1,2,1},
 		{1,2,2,2,2,2,2,2,2,2,6,2,2,1,0,0,0,0,1,7,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,8,2,2,2,7,1,0,0,0,0,0,1,9,2,2,2,2,2,2,2,2,2,1},
-		{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1} 
+		{1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1}
 		};
 		// Put the player where she belongs!
 		caveGlobals->row = 1;
@@ -760,8 +770,8 @@ void changelevel(struct cGlobals *caveGlobals) {
 			}
 		}
 		// Who made it???
-		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: ScarletDreamz");		
-	}	
+		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: ScarletDreamz");
+	}
 	if (caveGlobals->level == 3) {
 		unsigned char lMapArray[17][62] = {
 		{ 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -848,7 +858,7 @@ void changelevel(struct cGlobals *caveGlobals) {
 		{0,1,2,1,7,1,6,1,0,1,2,1,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,2,1,2,1,2,2,2,2,2,2,2,1,2,9,2,1,2,2,2,2,2,0,0,0},
 		{0,1,2,1,7,1,6,1,0,1,2,1,1,1,2,2,2,7,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,1,2,1,1,1,1,10,1,1,1,1,2,2,2,1,2,2,2,2,2,0,0,0},
 		{0,1,8,1,8,1,11,1,0,1,2,2,2,4,2,2,6,2,7,2,5,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,10,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,0,0,0},
-		{0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,0,0,0} 
+		{0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,0,0,0}
 		};
 		// Put the player where she belongs!
 		caveGlobals->row = 1;
@@ -863,5 +873,5 @@ void changelevel(struct cGlobals *caveGlobals) {
 		}
 		// Who made it???
 		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: Sivart0");
-	}	
+	}
 }
