@@ -1,5 +1,22 @@
-#include "loader.h"
-#include "init.h"
+#include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include "dynamic_libs/os_functions.h"
+#include "dynamic_libs/fs_functions.h"
+#include "dynamic_libs/gx2_functions.h"
+#include "dynamic_libs/sys_functions.h"
+#include "dynamic_libs/vpad_functions.h"
+#include "dynamic_libs/padscore_functions.h"
+#include "dynamic_libs/socket_functions.h"
+#include "dynamic_libs/ax_functions.h"
+#include "fs/fs_utils.h"
+#include "fs/sd_fat_devoptab.h"
+#include "system/memory.h"
+#include "utils/logger.h"
+#include "utils/utils.h"
+#include "common/common.h"
+#include "main.h"
 
 void doclearstuff();
 void drawtitle();
@@ -14,94 +31,29 @@ bool istrap(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 bool ishtrap(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 bool ishdoor(struct cGlobals *caveGlobals, int nMapX, int nMapY );
 void *memcpy(void* dst, const void* src, uint32_t size);
+void flipBuffers();
+void drawString(unsigned int x, unsigned int y, void * string);
 
-void _main()
+int Menu_Main()
 {
-    /****************************>            Fix Stack            <****************************/
-    //Load a good stack
-    asm(
-        "lis %r1, 0x1ab5 ;"
-        "ori %r1, %r1, 0xd138 ;"
-        );
-    /****************************>           Get Handles           <****************************/
-    //Get a handle to coreinit.rpl
-    unsigned int coreinit_handle, vpad_handle, sysapp_handle, avm_handle;
-    OSDynLoad_Acquire("coreinit.rpl", &coreinit_handle);
-    OSDynLoad_Acquire("vpad.rpl", &vpad_handle);
-    OSDynLoad_Acquire("sysapp.rpl", &sysapp_handle);
-    // CreeperMario: Get a handle to the audio/video manager - avm.rpl
-    OSDynLoad_Acquire("avm.rpl", &avm_handle);
-
-    // STUFF
+    
+    InitOSFunctionPointers();
+    InitVPadFunctionPointers();
+    memoryInitialize();
+    
     VPADData vpad_data;
-    int(*VPADRead)(int controller, VPADData *buffer, unsigned int num, int *err);
-    OSDynLoad_FindExport(vpad_handle, 0, "VPADRead", &VPADRead);
-
-    // Sysapp stuff
-    int(*SYSLaunchMenu)();
-    OSDynLoad_FindExport(sysapp_handle, 0, "SYSLaunchMenu", &SYSLaunchMenu);
-
-	// please dont break stuff...
-	int(*SYSLaunchTitle) (int bit1, int bit2);
-	OSDynLoad_FindExport(sysapp_handle, 0, "SYSLaunchTitle", &SYSLaunchTitle);
-	int(*_Exit)();
-	OSDynLoad_FindExport(coreinit_handle, 0, "_Exit", &_Exit);
-
-    /****************************>       External Prototypes       <****************************/
-    //OSScreen functions
-    void(*OSScreenInit)();
-    unsigned int(*OSScreenGetBufferSizeEx)(unsigned int bufferNum);
-    unsigned int(*OSScreenSetBufferEx)(unsigned int bufferNum, void * addr);
-    //OS Memory functions
-	void*(*memset)(void * dest, uint32_t value, uint32_t bytes);
-    void*(*OSAllocFromSystem)(uint32_t size, int align);
-    void(*OSFreeToSystem)(void *ptr);
-    //IM functions
-    int(*IM_Open)();
-    int(*IM_Close)(int fd);
-    int(*IM_SetDeviceState)(int fd, void *mem, int state, int a, int b);
-    // CreeperMario: TV Screen scaling functions
-    bool(*AVMSetTVScale)(int width, int height);
-    /****************************>             Exports             <****************************/
-    //OSScreen functions
-    OSDynLoad_FindExport(coreinit_handle, 0, "OSScreenInit", &OSScreenInit);
-    OSDynLoad_FindExport(coreinit_handle, 0, "OSScreenGetBufferSizeEx", &OSScreenGetBufferSizeEx);
-    OSDynLoad_FindExport(coreinit_handle, 0, "OSScreenSetBufferEx", &OSScreenSetBufferEx);
-    //OS Memory functions
-    OSDynLoad_FindExport(coreinit_handle, 0, "memset", &memset);
-    OSDynLoad_FindExport(coreinit_handle, 0, "OSAllocFromSystem", &OSAllocFromSystem);
-    OSDynLoad_FindExport(coreinit_handle, 0, "OSFreeToSystem", &OSFreeToSystem);
-    //IM functions
-    OSDynLoad_FindExport(coreinit_handle, 0, "IM_Open", &IM_Open);
-    OSDynLoad_FindExport(coreinit_handle, 0, "IM_Close", &IM_Close);
-    OSDynLoad_FindExport(coreinit_handle, 0, "IM_SetDeviceState", &IM_SetDeviceState);
-    // CreeperMario: TV Screen scaling functions
-    OSDynLoad_FindExport(avm_handle, 0, "AVMSetTVScale", &AVMSetTVScale);
-
-    /*** CreeperMario: Set the TV screen to the proper 'scale factor'. ***/
-    AVMSetTVScale(854, 480);
-
-    /****************************>          Initial Setup          <****************************/
-    //Restart system to get lib access
-    int fd = IM_Open();
-    void *mem = OSAllocFromSystem(0x100, 64);
-    memset(mem, 0, 0x100);
-    //set restart flag to force quit browser
-    IM_SetDeviceState(fd, mem, 3, 0, 0);
-    IM_Close(fd);
-    OSFreeToSystem(mem);
-    //wait a bit for browser end
-    unsigned int t1 = 0x15000000;
-    while(t1--) ;
-    //Call the Screen initilzation function.
+    VPADInit();
     OSScreenInit();
-    //Grab the buffer size for each screen (TV and gamepad)
+    
     int buf0_size = OSScreenGetBufferSizeEx(0);
-    int buf1_size = OSScreenGetBufferSizeEx(1);
-    //Set the buffer area.
+    //int buf1_size = OSScreenGetBufferSizeEx(1);
+    
     OSScreenSetBufferEx(0, (void *)0xF4000000);
     OSScreenSetBufferEx(1, (void *)0xF4000000 + buf0_size);
-    //Clear both framebuffers.
+    
+    OSScreenEnableEx(0, 1);
+    OSScreenEnableEx(1, 1);
+    
     doclearstuff();
 
 	// Define struct for global variables!
@@ -133,24 +85,23 @@ void _main()
 		VPADRead(0, &vpad_data, 1, &err);
 
 		// Quit
-		if (vpad_data.btn_trigger & BUTTON_HOME) {
+		if (vpad_data.btns_d & VPAD_BUTTON_HOME) {
 			doclearstuff();
 			__os_snprintf(caveGlobals.endgame, 256, "Thanks for Playing!\nYour Final Level: %d \n\n\nBy: SonyUSA", caveGlobals.level);
 			drawString(0, 0, caveGlobals.endgame);
 			flipBuffers();
-			t1 = 0x50000000;
-			while(t1--) ;
+			sleep(10);
 			//Maybe fix for exit crash?
 			doclearstuff();
 			flipBuffers();
 			doclearstuff();
 			flipBuffers();
-			//Ape escape!
-			SYSLaunchMenu();
-			_Exit();
+			
+            memoryRelease();
+            return EXIT_SUCCESS;
 		}
 		//Grab Stuff (A)
-		if (vpad_data.btn_release & BUTTON_A) {
+		if (vpad_data.btns_r & VPAD_BUTTON_A) {
 			//Checks for Food
 			if (caveGlobals.nMapArray[caveGlobals.col][caveGlobals.row] == 8) {
 				doclearstuff();
@@ -184,7 +135,7 @@ void _main()
 			}
 		}
 		//Search for Hidden Traps and Doors
-		if (vpad_data.btn_trigger & BUTTON_Y) {
+		if (vpad_data.btns_d & VPAD_BUTTON_Y) {
 			doclearstuff();
 			drawstuff(&caveGlobals);
 			dog(&caveGlobals);
@@ -196,7 +147,7 @@ void _main()
 			while(2) {
 				VPADRead(0, &vpad_data, 1, &err);
 				// Search Up
-				if (vpad_data.btn_release & BUTTON_UP) {
+				if (vpad_data.btns_r & VPAD_BUTTON_UP) {
 					// Traps
 					if (ishtrap(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
 						doclearstuff();
@@ -226,7 +177,7 @@ void _main()
 					break;
 				}
 				// Search Down
-				if (vpad_data.btn_release & BUTTON_DOWN) {
+				if (vpad_data.btns_r & VPAD_BUTTON_DOWN) {
 					// Traps
 					if (ishtrap(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
 						doclearstuff();
@@ -256,7 +207,7 @@ void _main()
 					break;
 				}
 				// Search Right
-				if (vpad_data.btn_release & BUTTON_RIGHT) {
+				if (vpad_data.btns_r & VPAD_BUTTON_RIGHT) {
 					// Traps
 					if (ishtrap(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
 						doclearstuff();
@@ -286,7 +237,7 @@ void _main()
 					break;
 				}
 				// Search Left
-				if (vpad_data.btn_release & BUTTON_LEFT) {
+				if (vpad_data.btns_r & VPAD_BUTTON_LEFT) {
 					// Traps
 					if (ishtrap(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 						doclearstuff();
@@ -318,8 +269,8 @@ void _main()
 			}
 		}
 		//Open and Close Doors (X + Direction)
-		if (vpad_data.btn_hold & BUTTON_X) {
-			if (vpad_data.btn_trigger & BUTTON_DOWN) {
+		if (vpad_data.btns_h & VPAD_BUTTON_X) {
+			if (vpad_data.btns_d & VPAD_BUTTON_DOWN) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -333,7 +284,7 @@ void _main()
 					flipBuffers();
 				}
 			}
-			if (vpad_data.btn_trigger & BUTTON_UP) {
+			if (vpad_data.btns_d & VPAD_BUTTON_UP) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -347,7 +298,7 @@ void _main()
 					flipBuffers();
 				}
 			}
-			if (vpad_data.btn_trigger & BUTTON_LEFT) {
+			if (vpad_data.btns_d & VPAD_BUTTON_LEFT) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -361,7 +312,7 @@ void _main()
 					flipBuffers();
 				}
 			}
-			if (vpad_data.btn_trigger & BUTTON_RIGHT) {
+			if (vpad_data.btns_d & VPAD_BUTTON_RIGHT) {
 				if (isclosedoor(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
 					doclearstuff();
 					drawstuff(&caveGlobals);
@@ -378,7 +329,7 @@ void _main()
 		}
 		// Movement
 		//Down
-		if (vpad_data.btn_trigger & BUTTON_DOWN) {
+		if (vpad_data.btns_d & VPAD_BUTTON_DOWN) {
 			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col +1 ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
@@ -399,7 +350,7 @@ void _main()
 			}
 		}
 		//Up
-		if (vpad_data.btn_trigger & BUTTON_UP) {
+		if (vpad_data.btns_d & VPAD_BUTTON_UP) {
 			if (canmove(&caveGlobals, caveGlobals.row, caveGlobals.col -1 ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
@@ -420,7 +371,7 @@ void _main()
 			}
 		}
 		//Left
-		if (vpad_data.btn_trigger & BUTTON_LEFT) {
+		if (vpad_data.btns_d & VPAD_BUTTON_LEFT) {
 			if (canmove(&caveGlobals, caveGlobals.row -1 , caveGlobals.col ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
@@ -441,7 +392,7 @@ void _main()
 			}
 		}
 		//Right
-		if (vpad_data.btn_trigger & BUTTON_RIGHT) {
+		if (vpad_data.btns_d & VPAD_BUTTON_RIGHT) {
 			if (canmove(&caveGlobals, caveGlobals.row +1 , caveGlobals.col ) == true ) {
 				doclearstuff();
 				dog(&caveGlobals);
@@ -462,7 +413,7 @@ void _main()
 			}
 		}
 		//Feed the doggy
-		if (vpad_data.btn_trigger & BUTTON_PLUS) {
+		if (vpad_data.btns_d & VPAD_BUTTON_PLUS) {
 			if (caveGlobals.dogalive == 1) {
 				if (caveGlobals.food >= 1) {
 					doclearstuff();
@@ -485,19 +436,22 @@ void _main()
 			__os_snprintf(caveGlobals.endgame, 256, "You're Dead!\nNow how will you get iosu? :/ \n\nThanks for Playing! \n\n\nBy: SonyUSA");
 			drawString(0, 0, caveGlobals.endgame);
 			flipBuffers();
-			t1 = 0x80000000;
-			while(t1--) ;
-			SYSLaunchMenu();
-			_Exit();
+			sleep(10);
+            doclearstuff();
+            flipBuffers();
+            doclearstuff();
+            flipBuffers();
+            memoryRelease();
+            return EXIT_SUCCESS;
 		}
-		// Cheat and go to next level with Minus key
-		if(vpad_data.btn_release & BUTTON_MINUS) {
+		/*// Cheat and go to next level with Minus key
+		if(vpad_data.btns_r & VPAD_BUTTON_MINUS) {
 				caveGlobals.level += 1;
 				doclearstuff();
 				changelevel(&caveGlobals);
 				drawstuff(&caveGlobals);
 				flipBuffers();
-		}
+		}*/
     }
 
 }
@@ -507,13 +461,8 @@ void drawstuff(struct cGlobals *caveGlobals) {
 	drawmap(caveGlobals);
 }
 void doclearstuff() {
-	int ii = 0;
-	for (ii; ii < 2; ii++)
-	{
-		fillScreen(0,0,0,0);
-		//Oops, don't do this anymore!
-		//flipBuffers();
-	}
+	OSScreenClearBufferEx(0, 0);
+    OSScreenClearBufferEx(1, 0);
 }
 
 //Boolean for bump map
@@ -874,4 +823,14 @@ void changelevel(struct cGlobals *caveGlobals) {
 		// Who made it???
 		__os_snprintf(caveGlobals->titlebar2, 128, "Map by: Sivart0");
 	}
+}
+
+void flipBuffers() {
+    OSScreenFlipBuffersEx(0);
+    OSScreenFlipBuffersEx(1);
+}
+
+void drawString(unsigned int x, unsigned int y, void * string) {
+    OSScreenPutFontEx(0, x, y, string);
+    OSScreenPutFontEx(1, x, y, string);
 }
